@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Location Risk Detector - Chetak</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: url('https://images.pexels.com/photos/618833/pexels-photo-618833.jpeg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: -1;
+        }
+
+        header {
+            padding: 20px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4fc3f7;
+            text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+            display: flex;
+            align-items: center;
+        }
+
+        .logo span {
+            color: #ff9800;
+        }
+
+        .logo i {
+            margin-right: 10px;
+            font-size: 1.8rem;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+
+        nav ul li {
+            margin-left: 25px;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            position: relative;
+            padding: 5px 0;
+            font-size: 1.1rem;
+        }
+
+        nav ul li a:hover {
+            color: #4fc3f7;
+        }
+
+        nav ul li a.active {
+            color: #ff9800;
+        }
+
+        nav ul li a.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #ff9800;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 30px 5%;
+            gap: 30px;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            height: fit-content;
+        }
+
+        .sidebar h2 {
+            color: #ff9800;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar h2 i {
+            margin-right: 10px;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .status-card h3 {
+            color: #4fc3f7;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .status-card h3 i {
+            margin-right: 10px;
+        }
+
+        .status-indicators {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .status-item i {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .status-item .value {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .status-item .label {
+            font-size: 0.8rem;
+            color: #ccc;
+            margin-top: 5px;
+        }
+
+        .risk-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .risk-card h3 {
+            color: #4fc3f7;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .risk-card h3 i {
+            margin-right: 10px;
+        }
+
+        .risk-meter {
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .meter-fill {
+            height: 100%;
+            width: 30%;
+            background: linear-gradient(90deg, #4caf50, #ff9800, #f44336);
+            border-radius: 15px;
+            transition: width 1s;
+        }
+
+        .meter-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+
+        .factors-list {
+            list-style: none;
+            margin-top: 15px;
+        }
+
+        .factors-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+        }
+
+        .factors-list li i {
+            margin-right: 10px;
+            color: #4fc3f7;
+        }
+
+        .alert-card {
+            background: rgba(255, 87, 34, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 5px solid #ff5722;
+        }
+
+        .alert-card h3 {
+            color: #ff5722;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .alert-card h3 i {
+            margin-right: 10px;
+        }
+
+        .alert-card p {
+            margin: 5px 0;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+        }
+
+        .page-title i {
+            margin-right: 15px;
+            color: #ff9800;
+        }
+
+        .map-container {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 10px;
+            z-index: 1;
+        }
+
+        .map-controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .control-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .control-btn i {
+            margin-right: 10px;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .control-btn.primary {
+            background: #4fc3f7;
+        }
+
+        .control-btn.primary:hover {
+            background: #0288d1;
+        }
+
+        .data-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .data-card {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .data-card h3 {
+            color: #ff9800;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .data-card h3 i {
+            margin-right: 10px;
+        }
+
+        .chart-container {
+            height: 200px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .sensor-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .sensor-item i {
+            font-size: 1.5rem;
+            color: #4fc3f7;
+            margin-bottom: 5px;
+        }
+
+        .sensor-item .value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 5px 0;
+        }
+
+        .sensor-item .label {
+            font-size: 0.8rem;
+            color: #ccc;
+        }
+
+        footer {
+            padding: 20px 5%;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        .risk-marker {
+            width: 30px;
+            height: 30px;
+            border-radius: 50% 50% 50% 0;
+            background: #f44336;
+            transform: rotate(-45deg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .risk-marker::after {
+            content: '';
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ff7961;
+            transform: rotate(45deg);
+        }
+
+        .risk-marker.low {
+            background: #4caf50;
+        }
+
+        .risk-marker.low::after {
+            background: #80e27e;
+        }
+
+        .risk-marker.moderate {
+            background: #ff9800;
+        }
+
+        .risk-marker.moderate::after {
+            background: #ffc947;
+        }
+
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+            }
+            
+            .data-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            nav ul {
+                margin-top: 20px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            nav ul li {
+                margin: 10px;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .status-indicators {
+                grid-template-columns: 1fr;
+            }
+            
+            .sensor-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .map-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+    
+    <header>
+       <div class="logo">
+                <i class="fas fa-mountain"></i>
+                <div class="logo-text">CHETAK<span></span></div>
+                <a href="index.html" title="Go to Home"></a>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="ml.html">ML Model Analysis</a></li>
+                <li><a href="#" class="active">Live Location Risk Detector</a></li>
+                <li><a href="VISIT.html">Visiting Location Risk Analysis</a></li>
+                <li><a href="PIC.html">Risk Analysis Through Pic</a></li>
+                
+            </ul>
+        </nav>
+    </header>
+    
+    <div class="container">
+        <div class="sidebar">
+            <div class="status-card">
+                <h3><i class="fas fa-satellite"></i> Tracking Status</h3>
+                <div class="status-indicators">
+                    <div class="status-item">
+                        <i class="fas fa-map-marker-alt" style="color: #4fc3f7;"></i>
+                        <div class="value" id="accuracyValue">12m</div>
+                        <div class="label">Accuracy</div>
+                    </div>
+                    <div class="status-item">
+                        <i class="fas fa-battery-three-quarters" style="color: #4caf50;"></i>
+                        <div class="value" id="batteryValue">78%</div>
+                        <div class="label">Battery</div>
+                    </div>
+                    <div class="status-item">
+                        <i class="fas fa-wifi" style="color: #ff9800;"></i>
+                        <div class="value" id="signalValue">Strong</div>
+                        <div class="label">Signal</div>
+                    </div>
+                    <div class="status-item">
+                        <i class="fas fa-clock" style="color: #9c27b0;"></i>
+                        <div class="value" id="updateValue">5s</div>
+                        <div class="label">Update Rate</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="risk-card">
+                <h3><i class="fas fa-exclamation-triangle"></i> Current Risk Assessment</h3>
+                <div class="risk-meter">
+                    <div class="meter-fill" id="riskMeter"></div>
+                </div>
+                <div class="meter-labels">
+                    <span>Low</span>
+                    <span>Moderate</span>
+                    <span>High</span>
+                    <span>Extreme</span>
+                </div>
+                <p id="riskLevel">Acquiring location data...</p>
+                
+                <ul class="factors-list">
+                    <li><i class="fas fa-temperature-high"></i> Temperature: <span id="factorTemp">--</span></li>
+                    <li><i class="fas fa-cloud-rain"></i> Precipitation: <span id="factorPrecip">--</span></li>
+                    <li><i class="fas fa-wind"></i> Wind Speed: <span id="factorWind">--</span></li>
+                    <li><i class="fas fa-ruler-combined"></i> Slope Angle: <span id="factorSlope">--</span></li>
+                    <li><i class="fas fa-mountain"></i> Elevation: <span id="factorElevation">--</span></li>
+                    <li><i class="fas fa-history"></i> Recent Activity: <span id="factorActivity">--</span></li>
+                </ul>
+            </div>
+            
+            <div class="alert-card">
+                <h3><i class="fas fa-bell"></i> Active Alerts</h3>
+                <p id="alertMessage">No active alerts in your area</p>
+                <p id="alertTime" style="font-size: 0.9rem; color: #ccc; margin-top: 10px;">Last checked: <span id="lastChecked">--</span></p>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <h1 class="page-title"><i class="fas fa-radar"></i> Live Location Risk Detector</h1>
+            
+            <div class="map-container">
+                <h3><i class="fas fa-map-marked-alt"></i> Real-time Risk Mapping</h3>
+                <div id="map"></div>
+                
+                <div class="map-controls">
+                    <button class="control-btn primary" onclick="getLocation()">
+                        <i class="fas fa-location-arrow"></i> Track My Location
+                    </button>
+                    <button class="control-btn" onclick="simulateMovement()">
+                        <i class="fas fa-walking"></i> Simulate Movement
+                    </button>
+                    <button class="control-btn" onclick="toggleSatelliteView()">
+                        <i class="fas fa-satellite"></i> Toggle View
+                    </button>
+                    <button class="control-btn" onclick="showRiskHistory()">
+                        <i class="fas fa-history"></i> View History
+                    </button>
+                </div>
+            </div>
+            
+            <div class="data-section">
+                <div class="data-card">
+                    <h3><i class="fas fa-chart-line"></i> Risk Trends</h3>
+                    <div class="chart-container" id="trendChart">
+                        <canvas id="trendCanvas"></canvas>
+                    </div>
+                </div>
+                
+                <div class="data-card">
+                    <h3><i class="fas fa-microchip"></i> Sensor Network</h3>
+                    <div class="sensor-grid">
+                        <div class="sensor-item">
+                            <i class="fas fa-vibration"></i>
+                            <div class="value" id="seismicValue">3.2</div>
+                            <div class="label">Seismic Activity</div>
+                        </div>
+                        <div class="sensor-item">
+                            <i class="fas fa-weight-hanging"></i>
+                            <div class="value" id="pressureValue">1024</div>
+                            <div class="label">Pressure (hPa)</div>
+                        </div>
+                        <div class="sensor-item">
+                            <i class="fas fa-tint"></i>
+                            <div class="value" id="moistureValue">42%</div>
+                            <div class="label">Soil Moisture</div>
+                        </div>
+                        <div class="sensor-item">
+                            <i class="fas fa-angle-double-down"></i>
+                            <div class="value" id="slopeValue">27°</div>
+                            <div class="label">Slope Inclination</div>
+                        </div>
+                        <div class="sensor-item">
+                            <i class="fas fa-ruler-combined"></i>
+                            <div class="value" id="displacementValue">2.5mm</div>
+                            <div class="label">Displacement</div>
+                        </div>
+                        <div class="sensor-item">
+                            <i class="fas fa-wind"></i>
+                            <div class="value" id="windValue">18km/h</div>
+                            <div class="label">Wind Speed</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>&copy; 2023 CHETAK - Avalanche & Landslide Detection System. All rights reserved.</p>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script>
+        // Initialize variables
+        let map, userMarker, riskLayer, riskHistory = [];
+        let isTracking = false;
+        let trackingInterval;
+        let satelliteView = false;
+        let trendChart;
+        
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([20, 0], 2);
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Initialize risk layer
+            riskLayer = L.layerGroup().addTo(map);
+            
+            // Add some initial risk zones for demonstration
+            addDemoRiskZones();
+            
+            // Initialize trend chart
+            initTrendChart();
+            
+            // Start with a simulated location
+            setTimeout(() => {
+                simulateLocationUpdate(37.7749, -122.4194);
+            }, 1000);
+        }
+        
+        // Initialize trend chart
+        function initTrendChart() {
+            const ctx = document.getElementById('trendCanvas').getContext('2d');
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['10m', '8m', '6m', '4m', '2m', 'Now'],
+                    datasets: [{
+                        label: 'Risk Level',
+                        data: [35, 42, 38, 55, 60, 45],
+                        borderColor: '#4fc3f7',
+                        backgroundColor: 'rgba(79, 195, 247, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                color: '#fff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#fff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#fff'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Add demo risk zones
+        function addDemoRiskZones() {
+            // Low risk zone
+            L.circle([37.77, -122.42], {
+                color: '#4caf50',
+                fillColor: '#4caf50',
+                fillOpacity: 0.2,
+                radius: 500
+            }).addTo(riskLayer).bindPopup('Low Risk Zone');
+            
+            // Moderate risk zone
+            L.circle([37.78, -122.41], {
+                color: '#ff9800',
+                fillColor: '#ff9800',
+                fillOpacity: 0.2,
+                radius: 600
+            }).addTo(riskLayer).bindPopup('Moderate Risk Zone');
+            
+            // High risk zone
+            L.circle([37.76, -122.43], {
+                color: '#f44336',
+                fillColor: '#f44336',
+                fillOpacity: 0.2,
+                radius: 700
+            }).addTo(riskLayer).bindPopup('High Risk Zone');
+        }
+        
+        // Get user's location
+        function getLocation() {
+            if (navigator.geolocation) {
+                isTracking = true;
+                document.getElementById('updateValue').textContent = '3s';
+                
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        const accuracy = position.coords.accuracy;
+                        
+                        updateLocation(lat, lng, accuracy);
+                        
+                        // Start tracking
+                        if (trackingInterval) clearInterval(trackingInterval);
+                        trackingInterval = setInterval(() => {
+                            navigator.geolocation.getCurrentPosition(
+                                pos => {
+                                    updateLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+                                },
+                                error => {
+                                    console.error('Geolocation error:', error);
+                                    showNotification('Location tracking failed', '#f44336');
+                                },
+                                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                            );
+                        }, 3000);
+                    },
+                    error => {
+                        console.error('Geolocation error:', error);
+                        showNotification('Unable to get your location', '#f44336');
+                        // Fallback to simulation
+                        simulateLocationUpdate(37.7749, -122.4194);
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            } else {
+                showNotification('Geolocation is not supported by your browser', '#f44336');
+                // Fallback to simulation
+                simulateLocationUpdate(37.7749, -122.4194);
+            }
+        }
+        
+        // Update location on map
+        function updateLocation(lat, lng, accuracy) {
+            // Update map view
+            map.setView([lat, lng], 15);
+            
+            // Update or create user marker
+            if (userMarker) {
+                userMarker.setLatLng([lat, lng]);
+            } else {
+                userMarker = L.marker([lat, lng], {
+                    icon: L.divIcon({
+                        className: 'user-marker',
+                        html: '<div style="background-color: #4fc3f7; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px #4fc3f7;"></div>',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    })
+                }).addTo(map);
+                
+                userMarker.bindPopup('Your Location').openPopup();
+            }
+            
+            // Update accuracy circle
+            if (window.accuracyCircle) {
+                map.removeLayer(window.accuracyCircle);
+            }
+            window.accuracyCircle = L.circle([lat, lng], {
+                color: '#4fc3f7',
+                fillColor: '#4fc3f7',
+                fillOpacity: 0.1,
+                radius: accuracy
+            }).addTo(map);
+            
+            // Update UI
+            document.getElementById('accuracyValue').textContent = `${Math.round(accuracy)}m`;
+            
+            // Simulate risk assessment based on location
+            simulateRiskAssessment(lat, lng);
+            
+            // Update last checked time
+            document.getElementById('lastChecked').textContent = new Date().toLocaleTimeString();
+        }
+        
+        // Simulate risk assessment
+        function simulateRiskAssessment(lat, lng) {
+            // Simulate risk value based on location
+            const riskValue = Math.floor(Math.random() * 100);
+            document.getElementById('riskMeter').style.width = `${riskValue}%`;
+            
+            let riskLevel, riskColor, alertMessage;
+            
+            if (riskValue < 25) {
+                riskLevel = "Low Risk";
+                riskColor = "#4caf50";
+                alertMessage = "No immediate threats detected";
+            } else if (riskValue < 50) {
+                riskLevel = "Moderate Risk";
+                riskColor = "#ff9800";
+                alertMessage = "Exercise caution in this area";
+            } else if (riskValue < 75) {
+                riskLevel = "High Risk";
+                riskColor = "#f44336";
+                alertMessage = "Warning: Potential landslide risk";
+            } else {
+                riskLevel = "Extreme Risk";
+                riskColor = "#d32f2f";
+                alertMessage = "DANGER: High probability of landslides";
+            }
+            
+            document.getElementById('riskLevel').textContent = riskLevel;
+            document.getElementById('riskLevel').style.color = riskColor;
+            document.getElementById('alertMessage').textContent = alertMessage;
+            
+            // Update risk factors
+            document.getElementById('factorTemp').textContent = `${Math.round(10 + Math.random() * 20)}°C`;
+            document.getElementById('factorPrecip').textContent = `${Math.round(Math.random() * 50)}mm`;
+            document.getElementById('factorWind').textContent = `${Math.round(5 + Math.random() * 40)} km/h`;
+            document.getElementById('factorSlope').textContent = `${Math.round(10 + Math.random() * 40)}°`;
+            document.getElementById('factorElevation').textContent = `${Math.round(100 + Math.random() * 1000)}m`;
+            
+            const activities = ['None', 'Low', 'Moderate', 'High'];
+            document.getElementById('factorActivity').textContent = activities[Math.floor(Math.random() * activities.length)];
+            
+            // Update sensor values
+            document.getElementById('seismicValue').textContent = (Math.random() * 5).toFixed(1);
+            document.getElementById('pressureValue').textContent = Math.round(1010 + Math.random() * 20);
+            document.getElementById('moistureValue').textContent = Math.round(Math.random() * 100) + '%';
+            document.getElementById('slopeValue').textContent = Math.round(15 + Math.random() * 30) + '°';
+            document.getElementById('displacementValue').textContent = (Math.random() * 5).toFixed(1) + 'mm';
+            document.getElementById('windValue').textContent = Math.round(5 + Math.random() * 30) + 'km/h';
+            
+            // Add to history
+            riskHistory.push({
+                lat,
+                lng,
+                risk: riskValue,
+                timestamp: new Date()
+            });
+            
+            // Update trend chart
+            updateTrendChart(riskValue);
+            
+            // Add risk marker
+            addRiskMarker(lat, lng, riskValue);
+        }
+        
+        // Add risk marker
+        function addRiskMarker(lat, lng, riskValue) {
+            let riskClass;
+            if (riskValue < 25) riskClass = 'low';
+            else if (riskValue < 50) riskClass = 'moderate';
+            else riskClass = 'high';
+            
+            const marker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                    className: 'risk-marker ' + riskClass,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 30]
+                })
+            }).addTo(map);
+            
+            marker.bindPopup(`Risk Level: ${Math.round(riskValue)}/100`);
+            
+            // Remove after some time
+            setTimeout(() => {
+                map.removeLayer(marker);
+            }, 30000);
+        }
+        
+        // Update trend chart
+        function updateTrendChart(newValue) {
+            const data = trendChart.data.datasets[0].data;
+            data.push(newValue);
+            if (data.length > 6) data.shift();
+            trendChart.update();
+        }
+        
+        // Simulate location update (for demo purposes)
+        function simulateLocationUpdate(lat, lng) {
+            updateLocation(lat, lng, 15);
+            showNotification('Using simulated location for demonstration', '#ff9800');
+        }
+        
+        // Simulate movement (for demo purposes)
+        function simulateMovement() {
+            if (!userMarker) {
+                showNotification('Please start tracking first', '#f44336');
+                return;
+            }
+            
+            const currentLatLng = userMarker.getLatLng();
+            const newLat = currentLatLng.lat + (Math.random() * 0.01 - 0.005);
+            const newLng = currentLatLng.lng + (Math.random() * 0.01 - 0.005);
+            
+            updateLocation(newLat, newLng, 20);
+            showNotification('Simulating movement...', '#4fc3f7');
+        }
+        
+        // Toggle satellite view
+        function toggleSatelliteView() {
+            if (satelliteView) {
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+            } else {
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                }).addTo(map);
+            }
+            
+            satelliteView = !satelliteView;
+            showNotification(satelliteView ? 'Switched to satellite view' : 'Switched to map view', '#4caf50');
+        }
+        
+        // Show risk history
+        function showRiskHistory() {
+            alert(`Risk History:\n${riskHistory.map((point, i) => 
+                `${i+1}. ${point.risk}/100 risk at ${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}`
+            ).join('\n')}`);
+        }
+        
+        // Show notification
+        function showNotification(message, color) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.right = '20px';
+            notification.style.backgroundColor = color;
+            notification.style.color = 'white';
+            notification.style.padding = '15px 20px';
+            notification.style.borderRadius = '5px';
+            notification.style.zIndex = '1000';
+            notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.5s';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 500);
+            }, 3000);
+        }
+        
+        // Initialize when page loads
+        window.onload = initMap;
+    </script>
+</body>
+</html>

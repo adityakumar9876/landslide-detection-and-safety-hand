@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chetak - Avalanche & Landslide Detection</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: url('https://iso.500px.com/wp-content/uploads/2018/03/500px_misty_mountain_tutorial.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: -1;
+        }
+
+        header {
+            padding: 30px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeIn 1.5s ease-in-out;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #4fc3f7;
+            text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+        }
+
+        .logo span {
+            color: #ff9800;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+
+        nav ul li {
+            margin-left: 30px;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            position: relative;
+            padding: 5px 0;
+        }
+
+        nav ul li a:hover {
+            color: #4fc3f7;
+        }
+
+        nav ul li a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #4fc3f7;
+            transition: width 0.3s;
+        }
+
+        nav ul li a:hover::after {
+            width: 100%;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 5%;
+            animation: slideUp 1s ease-in-out;
+        }
+
+        h1 {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 span {
+            color: #ff9800;
+        }
+
+        .tagline {
+            font-size: 1.5rem;
+            margin-bottom: 40px;
+            max-width: 800px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(45deg, #4fc3f7, #0288d1);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #0288d1, #4fc3f7);
+        }
+
+        .features {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-top: 60px;
+            animation: fadeIn 2s ease-in-out;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            width: 250px;
+            transition: transform 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .feature-card i {
+            font-size: 2.5rem;
+            color: #4fc3f7;
+            margin-bottom: 15px;
+        }
+
+        .feature-card h3 {
+            margin-bottom: 10px;
+            color: #ff9800;
+        }
+
+        footer {
+            padding: 20px 5%;
+            text-align: center;
+            margin-top: auto;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+            }
+
+            nav ul {
+                margin-top: 20px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            nav ul li {
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .tagline {
+                font-size: 1.2rem;
+            }
+
+            .features {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+    
+    <header>
+        <div class="logo"><span>CHETAK</span></div>
+        <nav>
+            <ul>
+                <li><a href="ml.html">ML Model Analysis</a></li>
+                <li><a href="live.html">Live Location Risk Assessment</a></li>
+                <li><a href="PIC.html">Risk Analysis Through Pic</a></li>
+                <li><a href="VISIT.html">Visiting Location Risk Analysis</a></li>
+
+            </ul>
+        </nav>
+    </header>
+    
+    <main class="main-content">
+        <h1>Advanced <span>Avalanche</span> & Landslide Detection</h1>
+        <p class="tagline">Protecting lives and infrastructure through cutting-edge AI technology and real-time monitoring systems for early detection of geological threats.</p>
+        <a href="#" class="cta-button">Get Started</a>
+        
+        <div class="features">
+            <div class="feature-card">
+                <i class="fas fa-brain"></i>
+                <h3>ML Model Analysis</h3>
+                <p>Advanced machine learning algorithms for accurate prediction</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-map-marker-alt"></i>
+                <h3>Live Location Assessment</h3>
+                <p>Real-time risk evaluation for any location</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-camera"></i>
+                <h3>Image Analysis</h3>
+                <p>Upload images for instant risk assessment</p>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <p>&copy; 2025 CHETAK - Avalanche & Landslide Detection System. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Simple animation for feature cards on scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const featureCards = document.querySelectorAll('.feature-card');
+            
+            featureCards.forEach((card, index) => {
+                // Add delay for staggered animation
+                card.style.animationDelay = `${index * 0.2}s`;
+            });
+            
+            // Add subtle parallax effect to background
+            window.addEventListener('scroll', function() {
+                const scrollY = window.scrollY;
+                document.querySelector('.overlay').style.opacity = 0.6 + (scrollY * 0.0005);
+            });
+        });
+    </script>
+</body>
+</html>

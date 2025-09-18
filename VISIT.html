@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visiting Place Analysis - Chetak</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: url('https://wallpapers.com/images/hd/majestic-avalanche-9uldn4muj4bb6zet.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: -1;
+        }
+
+        header {
+            padding: 20px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4fc3f7;
+            text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+            display: flex;
+            align-items: center;
+        }
+
+        .logo span {
+            color: #ff9800;
+        }
+
+        .logo i {
+            margin-right: 10px;
+            font-size: 1.8rem;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+
+        nav ul li {
+            margin-left: 25px;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            position: relative;
+            padding: 5px 0;
+            font-size: 1.1rem;
+        }
+
+        nav ul li a:hover {
+            color: #4fc3f7;
+        }
+
+        nav ul li a.active {
+            color: #ff9800;
+        }
+
+        nav ul li a.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #ff9800;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 30px 5%;
+            gap: 30px;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            height: fit-content;
+        }
+
+        .sidebar h2 {
+            color: #ff9800;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar h2 i {
+            margin-right: 10px;
+        }
+
+        .search-box {
+            margin-bottom: 25px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .search-box input::placeholder {
+            color: #ccc;
+        }
+
+        .recent-searches {
+            margin-top: 20px;
+        }
+
+        .search-item {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .search-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .search-item i {
+            color: #4fc3f7;
+        }
+
+        .risk-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .risk-card h3 {
+            color: #4fc3f7;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .risk-card h3 i {
+            margin-right: 10px;
+        }
+
+        .risk-meter {
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .meter-fill {
+            height: 100%;
+            width: 40%;
+            background: linear-gradient(90deg, #4caf50, #ff9800, #f44336);
+            border-radius: 15px;
+            transition: width 1s;
+        }
+
+        .meter-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+
+        .factors-list {
+            list-style: none;
+            margin-top: 15px;
+        }
+
+        .factors-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+        }
+
+        .factors-list li i {
+            margin-right: 10px;
+            color: #4fc3f7;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+        }
+
+        .page-title i {
+            margin-right: 15px;
+            color: #ff9800;
+        }
+
+        .map-container {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 10px;
+            z-index: 1;
+        }
+
+        .location-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .detail-card {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .detail-card h3 {
+            color: #ff9800;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .detail-card h3 i {
+            margin-right: 10px;
+        }
+
+        .safety-tips {
+            margin-top: 20px;
+            background: rgba(255, 152, 0, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 5px solid #ff9800;
+        }
+
+        .safety-tips h3 {
+            color: #ff9800;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .safety-tips h3 i {
+            margin-right: 10px;
+        }
+
+        .tips-list {
+            list-style: none;
+        }
+
+        .tips-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+        }
+
+        .tips-list li i {
+            margin-right: 10px;
+            color: #4fc3f7;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 15px;
+            border-radius: 10px;
+            border: none;
+            background: #4fc3f7;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .action-btn i {
+            margin-right: 10px;
+        }
+
+        .action-btn:hover {
+            background: #0288d1;
+            transform: translateY(-3px);
+        }
+
+        .action-btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .action-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        footer {
+            padding: 20px 5%;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+            }
+            
+            .location-details {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            nav ul {
+                margin-top: 20px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            nav ul li {
+                margin: 10px;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+    
+    <header>
+       <div class="logo">
+                <i class="fas fa-mountain"></i>
+                <div class="logo-text">CHETAK<span></span></div>
+                <a href="index.html" title="Go to Home"></a>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="ml.html">ML Model Analysis</a></li>
+                <li><a href="live.html">Live Location Risk Assessment</a></li>
+                <li><a href="VISIT.html">Visiting Location Risk Analysis</a></li>
+               
+            </ul>
+        </nav>
+    </header>
+    
+    <div class="container">
+        <div class="sidebar">
+            <h2><i class="fas fa-search-location"></i> Search Location</h2>
+            
+            <div class="search-box">
+                <input type="text" id="locationSearch" placeholder="Enter location name or coordinates...">
+            </div>
+            
+            <div class="recent-searches">
+                <h3><i class="fas fa-history"></i> Recent Searches</h3>
+                <div class="search-item" onclick="searchLocation('Himalayas, Nepal')">
+                    <span>Himalayas, Nepal</span>
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+                <div class="search-item" onclick="searchLocation('Swiss Alps, Switzerland')">
+                    <span>Swiss Alps, Switzerland</span>
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+                <div class="search-item" onclick="searchLocation('Rocky Mountains, Canada')">
+                    <span>Rocky Mountains, Canada</span>
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+                <div class="search-item" onclick="searchLocation('Andes, Chile')">
+                    <span>Andes, Chile</span>
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+            </div>
+            
+            <div class="risk-card">
+                <h3><i class="fas fa-exclamation-triangle"></i> Risk Assessment</h3>
+                <div class="risk-meter">
+                    <div class="meter-fill" id="riskMeter"></div>
+                </div>
+                <div class="meter-labels">
+                    <span>Low</span>
+                    <span>Moderate</span>
+                    <span>High</span>
+                    <span>Extreme</span>
+                </div>
+                <p id="riskLevel">Enter a location to assess risk</p>
+            </div>
+            
+            <div class="risk-factors">
+                <h3><i class="fas fa-analytics"></i> Risk Factors</h3>
+                <ul class="factors-list">
+                    <li><i class="fas fa-temperature-high"></i> Temperature: <span id="factorTemp">--</span></li>
+                    <li><i class="fas fa-cloud-rain"></i> Precipitation: <span id="factorPrecip">--</span></li>
+                    <li><i class="fas fa-wind"></i> Wind Speed: <span id="factorWind">--</span></li>
+                    <li><i class="fas fa-ruler-combined"></i> Slope Angle: <span id="factorSlope">--</span></li>
+                    <li><i class="fas fa-mountain"></i> Elevation: <span id="factorElevation">--</span></li>
+                    <li><i class="fas fa-history"></i> Recent Activity: <span id="factorActivity">--</span></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <h1 class="page-title"><i class="fas fa-map-marked-alt"></i> Visiting Place Risk Analysis</h1>
+            
+            <div class="map-container">
+                <h3><i class="fas fa-globe-americas"></i> Location Map</h3>
+                <div id="map"></div>
+                
+                <div class="location-details">
+                    <div class="detail-card">
+                        <h3><i class="fas fa-info-circle"></i> Location Information</h3>
+                        <p id="locationInfo">Enter a location to see details</p>
+                        <p id="locationCoords">Coordinates: --</p>
+                        <p id="locationRegion">Region: --</p>
+                        <p id="locationType">Terrain Type: --</p>
+                    </div>
+                    
+                    <div class="detail-card">
+                        <h3><i class="fas fa-calendar-alt"></i> Forecast</h3>
+                        <p id="forecast1">Today: --</p>
+                        <p id="forecast2">Tomorrow: --</p>
+                        <p id="forecast3">Next 3 days: --</p>
+                        <p id="forecastTrend">Trend: --</p>
+                    </div>
+                </div>
+                
+                <div class="safety-tips">
+                    <h3><i class="fas fa-first-aid"></i> Safety Recommendations</h3>
+                    <ul class="tips-list" id="safetyTips">
+                        <li><i class="fas fa-check-circle"></i> Enter a location to get safety recommendations</li>
+                    </ul>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="simulateAssessment()">
+                        <i class="fas fa-bolt"></i> Run Risk Assessment
+                    </button>
+                    <button class="action-btn secondary" onclick="generateReport()">
+                        <i class="fas fa-download"></i> Download Report
+                    </button>
+                    <button class="action-btn secondary" onclick="shareLocation()">
+                        <i class="fas fa-share-alt"></i> Share Analysis
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>&copy; 2023 CHETAK - Avalanche & Landslide Detection System. All rights reserved.</p>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map
+        let map, marker;
+        
+        function initMap() {
+            map = L.map('map').setView([20, 0], 2);
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Add initial marker
+            marker = L.marker([0, 0], {
+                draggable: true,
+                title: "Drag to adjust location"
+            }).addTo(map);
+            
+            marker.bindPopup('Drag me to your desired location').openPopup();
+            
+            // Update location when marker is dragged
+            marker.on('dragend', function() {
+                const position = marker.getLatLng();
+                updateLocationInfo(position.lat, position.lng);
+            });
+        }
+        
+        // Search for a location
+        function searchLocation(query) {
+            document.getElementById('locationSearch').value = query;
+            
+            // Simulate API call to geocode the location
+            const locations = {
+                'Himalayas, Nepal': [28.3949, 84.1240],
+                'Swiss Alps, Switzerland': [46.5580, 8.5606],
+                'Rocky Mountains, Canada': [53.7267, -127.6476],
+                'Andes, Chile': [-35.6751, -71.5429],
+                'Mount Everest': [27.9881, 86.9250],
+                'Kilimanjaro': [-3.0674, 37.3556],
+                'Fuji': [35.3606, 138.7274]
+            };
+            
+            const coords = locations[query] || [20 + Math.random() * 50 - 25, 0 + Math.random() * 100 - 50];
+            
+            // Update map view
+            map.setView(coords, 10);
+            marker.setLatLng(coords);
+            
+            // Update location info
+            updateLocationInfo(coords[0], coords[1], query);
+        }
+        
+        // Update location information
+        function updateLocationInfo(lat, lng, name) {
+            const locationName = name || `Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+            
+            document.getElementById('locationInfo').textContent = locationName;
+            document.getElementById('locationCoords').textContent = `Coordinates: ${lat.toFixed(4)}°, ${lng.toFixed(4)}°`;
+            
+            // Simulate region detection
+            const regions = [
+                'Mountain Range', 'Alpine Region', 'Hilly Terrain', 
+                'Plateau', 'Valley', 'Coastal Mountains'
+            ];
+            document.getElementById('locationRegion').textContent = `Region: ${regions[Math.floor(Math.random() * regions.length)]}`;
+            
+            // Simulate terrain type
+            const terrains = [
+                'Steep Slopes', 'Moderate Incline', 'Rocky Terrain',
+                'Glacial Area', 'Forested Slope', 'Exposed Ridge'
+            ];
+            document.getElementById('locationType').textContent = `Terrain Type: ${terrains[Math.floor(Math.random() * terrains.length)]}`;
+            
+            // Simulate forecast
+            const forecasts = [
+                'Clear, Low Risk', 'Partly Cloudy, Moderate Risk', 
+                'Snow Showers, High Risk', 'Heavy Precipitation, Extreme Risk'
+            ];
+            document.getElementById('forecast1').textContent = `Today: ${forecasts[Math.floor(Math.random() * forecasts.length)]}`;
+            document.getElementById('forecast2').textContent = `Tomorrow: ${forecasts[Math.floor(Math.random() * forecasts.length)]}`;
+            document.getElementById('forecast3').textContent = `Next 3 days: ${forecasts[Math.floor(Math.random() * forecasts.length)]}`;
+            
+            const trends = ['Improving', 'Stable', 'Deteriorating'];
+            document.getElementById('forecastTrend').textContent = `Trend: ${trends[Math.floor(Math.random() * trends.length)]}`;
+            
+            // Update risk factors
+            document.getElementById('factorTemp').textContent = `${Math.round(-10 + Math.random() * 30)}°C`;
+            document.getElementById('factorPrecip').textContent = `${Math.round(Math.random() * 100)}mm`;
+            document.getElementById('factorWind').textContent = `${Math.round(5 + Math.random() * 50)} km/h`;
+            document.getElementById('factorSlope').textContent = `${Math.round(10 + Math.random() * 50)}°`;
+            document.getElementById('factorElevation').textContent = `${Math.round(500 + Math.random() * 4000)}m`;
+            
+            const activities = ['None Recent', 'Low', 'Moderate', 'High'];
+            document.getElementById('factorActivity').textContent = activities[Math.floor(Math.random() * activities.length)];
+        }
+        
+        // Simulate risk assessment
+        function simulateAssessment() {
+            const riskValue = Math.floor(Math.random() * 100);
+            document.getElementById('riskMeter').style.width = `${riskValue}%`;
+            
+            let riskLevel, riskColor, recommendations;
+            
+            if (riskValue < 25) {
+                riskLevel = "Low Risk";
+                riskColor = "#4caf50";
+                recommendations = [
+                    "Generally safe conditions",
+                    "Normal precautions recommended",
+                    "Check weather forecast regularly",
+                    "Inform others of your plans"
+                ];
+            } else if (riskValue < 50) {
+                riskLevel = "Moderate Risk";
+                riskColor = "#ff9800";
+                recommendations = [
+                    "Exercise caution in steep terrain",
+                    "Avoid avalanche-prone slopes",
+                    "Carry safety equipment",
+                    "Check local avalanche bulletin"
+                ];
+            } else if (riskValue < 75) {
+                riskLevel = "High Risk";
+                riskColor = "#f44336";
+                recommendations = [
+                    "Avoid backcountry travel",
+                    "Stay on marked trails only",
+                    "Carry emergency communication",
+                    "Consider postponing trip"
+                ];
+            } else {
+                riskLevel = "Extreme Risk";
+                riskColor = "#d32f2f";
+                recommendations = [
+                    "Travel not recommended",
+                    "Dangerous avalanche conditions",
+                    "Stay away from steep slopes",
+                    "Monitor official warnings"
+                ];
+            }
+            
+            document.getElementById('riskLevel').textContent = riskLevel;
+            document.getElementById('riskLevel').style.color = riskColor;
+            
+            // Update safety tips
+            const tipsList = document.getElementById('safetyTips');
+            tipsList.innerHTML = '';
+            
+            recommendations.forEach(tip => {
+                const li = document.createElement('li');
+                li.innerHTML = `<i class="fas fa-check-circle"></i> ${tip}`;
+                tipsList.appendChild(li);
+            });
+            
+            // Show notification
+            showNotification(`Risk assessment completed: ${riskLevel}`, riskColor);
+        }
+        
+        // Generate report
+        function generateReport() {
+            showNotification("Generating PDF report...", "#4fc3f7");
+            
+            // Simulate report generation delay
+            setTimeout(() => {
+                showNotification("Report downloaded successfully!", "#4caf50");
+            }, 2000);
+        }
+        
+        // Share location analysis
+        function shareLocation() {
+            showNotification("Share options displayed", "#ff9800");
+            
+            // In a real app, this would open a share dialog
+            alert("In a complete implementation, this would open share options including:\n- Copy link\n- Email\n- Social media sharing");
+        }
+        
+        // Show notification
+        function showNotification(message, color) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.right = '20px';
+            notification.style.backgroundColor = color;
+            notification.style.color = 'white';
+            notification.style.padding = '15px 20px';
+            notification.style.borderRadius = '5px';
+            notification.style.zIndex = '1000';
+            notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.5s';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 500);
+            }, 3000);
+        }
+        
+        // Initialize when page loads
+        window.onload = function() {
+            initMap();
+            
+            // Set up search functionality
+            document.getElementById('locationSearch').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchLocation(this.value);
+                }
+            });
+            
+            // Set up demo data
+            setTimeout(() => {
+                searchLocation('Himalayas, Nepal');
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

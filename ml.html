@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landslide Prediction Tool</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* Improved Navigation Styles */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(44, 62, 80, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        nav ul {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        nav li {
+            position: relative;
+        }
+        
+        nav a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 18px 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        nav a:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        nav a.active {
+            background: #4a6491;
+            color: white;
+        }
+        
+        nav a.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #fff;
+        }
+        
+        /* Mobile menu button */
+        .menu-toggle {
+            display: none;
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+        
+        /* Logo styling */
+        .logo {
+            display: flex;
+            align-items: center;
+            margin-right: auto;
+            padding: 0 20px;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .logo i {
+            margin-right: 8px;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #2c3e50, #4a6491);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 80px 20px 20px; /* Added top padding for fixed nav */
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .form-container {
+            padding: 20px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .input-group input:focus, .input-group select:focus {
+            border-color: #4a6491;
+            outline: none;
+        }
+        
+        .conditions-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .condition-checkbox {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .condition-checkbox:hover {
+            background: #e9ecef;
+        }
+        
+        .condition-checkbox input {
+            margin-right: 8px;
+        }
+        
+        .btn {
+            background: #2c3e50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background: #1a2636;
+        }
+        
+        .result-container {
+            padding: 20px;
+            display: none;
+        }
+        
+        .risk-meter {
+            height: 30px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            margin: 20px 0;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .risk-level {
+            height: 100%;
+            border-radius: 15px;
+            transition: width 0.5s ease-in-out;
+        }
+        
+        .risk-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .risk-info {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .risk-low {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .risk-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .risk-high {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .recommendations {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .recommendations h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .recommendations ul {
+            padding-left: 20px;
+        }
+        
+        .recommendations li {
+            margin-bottom: 5px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2c3e50;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive design for navigation */
+        @media (max-width: 900px) {
+            nav ul {
+                flex-wrap: wrap;
+            }
+            
+            nav a {
+                padding: 15px 16px;
+                font-size: 0.9rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: block;
+            }
+            
+            nav ul {
+                flex-direction: column;
+                display: none;
+                width: 100%;
+            }
+            
+            nav ul.active {
+                display: flex;
+            }
+            
+            nav li {
+                width: 100%;
+                text-align: center;
+            }
+            
+            .logo {
+                padding: 15px 20px;
+            }
+            
+            body {
+                padding: 70px 15px 15px;
+            }
+        }
+        
+        @media (max-width: 500px) {
+            .conditions-container {
+                grid-template-columns: 1fr;
+            }
+            
+            nav a {
+                padding: 12px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+       <div class="logo">
+                <i class="fas fa-mountain"></i>
+                <div class="logo-text">CHETAK<span></span></div>
+                <a href="index.html" title="Go to Home"></a>
+        <ul id="nav-menu">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="ml.html">ML Model Analysis</a></li>
+            <li><a href="live.html">Live Location Risk Detector</a></li>
+            <li><a href="VISIT.html">Visiting Location Risk Analysis</a></li>
+            <li><a href="PIC.html">Risk Analysis Through Pic</a></li>
+           
+        </ul>
+    </nav>
+    
+    <div class="container">
+        <div class="header">
+            <h1>Landslide Prediction Tool</h1>
+            <p>Enter state and current conditions to assess landslide risk</p>
+        </div>
+        
+        <div class="form-container">
+            <div class="input-group">
+                <label for="state">State/Region</label>
+                <input type="text" id="state" placeholder="e.g., Kerala, Himachal Pradesh, Uttarakhand">
+            </div>
+            
+            <div class="input-group">
+                <label>Current Conditions (select all that apply)</label>
+                <div class="conditions-container">
+                    <label class="condition-checkbox">
+                        <input type="checkbox" name="conditions" value="rain"> Rain
+                    </label>
+                    <label class="condition-checkbox">
+                        <input type="checkbox" name="conditions" value="heavy_rain"> Heavy Rain
+                    </label>
+                    <label class="condition-checkbox">
+                        <input type="checkbox" name="conditions" value="flooding"> Flooding
+                    </label>
+                    <label class="condition-checkbox">
+                        <input type="checkbox" name="conditions" value="recent_landslides"> Recent Landslides
+                    </label>
+                    <label class="condition-checkbox">
+                        <input type="checkbox" name="conditions" value="steep_terrain"> Steep Terrain
+                    </label>
+                    <label class="condition-checkbox">
+                        <input type="checkbox" name="conditions" value="construction"> Construction Activity
+                    </label>
+                </div>
+            </div>
+            
+            <button class="btn" id="predict-btn">Predict Landslide Risk</button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing conditions...</p>
+        </div>
+        
+        <div class="result-container" id="result-container">
+            <h2>Risk Assessment for <span id="result-state">Kerala</span></h2>
+            
+            <div class="risk-meter">
+                <div class="risk-level" id="risk-meter-bar"></div>
+            </div>
+            <div class="risk-labels">
+                <span>Low</span>
+                <span>Medium</span>
+                <span>High</span>
+            </div>
+            
+            <div class="risk-info" id="risk-info">
+                <!-- Risk information will be inserted here -->
+            </div>
+            
+            <div class="recommendations">
+                <h3>Recommendations</h3>
+                <ul id="recommendations-list">
+                    <!-- Recommendations will be inserted here -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const predictBtn = document.getElementById('predict-btn');
+            const loadingElement = document.getElementById('loading');
+            const resultContainer = document.getElementById('result-container');
+            const mobileMenuBtn = document.getElementById('mobile-menu');
+            const navMenu = document.getElementById('nav-menu');
+            
+            // Mobile menu toggle
+            mobileMenuBtn.addEventListener('click', function() {
+                navMenu.classList.toggle('active');
+            });
+            
+            // Close mobile menu when clicking on a link
+            const navLinks = document.querySelectorAll('nav a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        navMenu.classList.remove('active');
+                    }
+                });
+            });
+            
+            // State risk data (simplified for demonstration)
+            const stateRiskData = {
+                'kerala': { baseRisk: 0.6, name: 'Kerala' },
+                'himachal pradesh': { baseRisk: 0.5, name: 'Himachal Pradesh' },
+                'uttarakhand': { baseRisk: 0.7, name: 'Uttarakhand' },
+                'assam': { baseRisk: 0.4, name: 'Assam' },
+                'maharashtra': { baseRisk: 0.3, name: 'Maharashtra' },
+                'karnataka': { baseRisk: 0.3, name: 'Karnataka' },
+                'tamil nadu': { baseRisk: 0.4, name: 'Tamil Nadu' }
+            };
+            
+            // Condition multipliers
+            const conditionMultipliers = {
+                'rain': 1.2,
+                'heavy_rain': 1.8,
+                'flooding': 1.6,
+                'recent_landslides': 2.0,
+                'steep_terrain': 1.4,
+                'construction': 1.3
+            };
+            
+            // Risk level thresholds
+            const riskThresholds = {
+                low: 0.3,
+                medium: 0.6
+            };
+            
+            // Recommendations by risk level
+            const recommendations = {
+                low: [
+                    "Monitor weather forecasts regularly",
+                    "Be aware of terrain conditions when traveling",
+                    "Report any signs of soil erosion to local authorities"
+                ],
+                medium: [
+                    "Avoid unnecessary travel to hilly areas",
+                    "Stay updated with official weather alerts",
+                    "Prepare an emergency evacuation plan",
+                    "Inspect your property for drainage issues"
+                ],
+                high: [
+                    "Consider evacuation if in a high-risk area",
+                    "Avoid all travel to affected regions",
+                    "Follow all official advisories and warnings",
+                    "Move to higher ground if in a flood-prone area",
+                    "Keep emergency supplies ready"
+                ]
+            };
+            
+            predictBtn.addEventListener('click', function() {
+                // Get user inputs
+                const stateInput = document.getElementById('state').value.trim().toLowerCase();
+                const selectedConditions = Array.from(document.querySelectorAll('input[name="conditions"]:checked'))
+                    .map(checkbox => checkbox.value);
+                
+                // Validate inputs
+                if (!stateInput) {
+                    alert('Please enter a state or region name');
+                    return;
+                }
+                
+                // Show loading state
+                loadingElement.style.display = 'block';
+                resultContainer.style.display = 'none';
+                
+                // Simulate processing time
+                setTimeout(() => {
+                    // Calculate risk
+                    const riskResult = calculateRisk(stateInput, selectedConditions);
+                    
+                    // Display results
+                    displayResults(riskResult);
+                    
+                    // Hide loading, show results
+                    loadingElement.style.display = 'none';
+                    resultContainer.style.display = 'block';
+                }, 1500);
+            });
+            
+            function calculateRisk(state, conditions) {
+                // Find the best matching state
+                let bestMatch = null;
+                let bestMatchKey = null;
+                
+                for (const [key, data] of Object.entries(stateRiskData)) {
+                    if (state.includes(key) || key.includes(state)) {
+                        bestMatch = data;
+                        bestMatchKey = key;
+                        break;
+                    }
+                }
+                
+                // If no match found, use a default medium risk
+                if (!bestMatch) {
+                    bestMatch = { baseRisk: 0.5, name: state };
+                } else {
+                    bestMatch.name = stateRiskData[bestMatchKey].name;
+                }
+                
+                // Calculate risk based on conditions
+                let riskLevel = bestMatch.baseRisk;
+                
+                conditions.forEach(condition => {
+                    if (conditionMultipliers[condition]) {
+                        riskLevel *= conditionMultipliers[condition];
+                    }
+                });
+                
+                // Cap risk at 1.0 (100%)
+                riskLevel = Math.min(riskLevel, 1.0);
+                
+                // Determine risk category
+                let riskCategory;
+                if (riskLevel < riskThresholds.low) {
+                    riskCategory = 'low';
+                } else if (riskLevel < riskThresholds.medium) {
+                    riskCategory = 'medium';
+                } else {
+                    riskCategory = 'high';
+                }
+                
+                return {
+                    state: bestMatch.name,
+                    riskLevel: riskLevel,
+                    riskCategory: riskCategory,
+                    conditions: conditions
+                };
+            }
+            
+            function displayResults(result) {
+                // Update state name
+                document.getElementById('result-state').textContent = result.state;
+                
+                // Update risk meter
+                const riskMeterBar = document.getElementById('risk-meter-bar');
+                riskMeterBar.style.width = `${result.riskLevel * 100}%`;
+                
+                // Set color based on risk category
+                if (result.riskCategory === 'low') {
+                    riskMeterBar.style.backgroundColor = '#28a745';
+                } else if (result.riskCategory === 'medium') {
+                    riskMeterBar.style.backgroundColor = '#ffc107';
+                } else {
+                    riskMeterBar.style.backgroundColor = '#dc3545';
+                }
+                
+                // Update risk info
+                const riskInfo = document.getElementById('risk-info');
+                riskInfo.className = 'risk-info risk-' + result.riskCategory;
+                
+                let riskText = '';
+                if (result.riskCategory === 'low') {
+                    riskText = `<h3>Low Risk (${Math.round(result.riskLevel * 100)}%)</h3>
+                                <p>Current conditions suggest a low probability of landslide activity in ${result.state}.</p>`;
+                } else if (result.riskCategory === 'medium') {
+                    riskText = `<h3>Medium Risk (${Math.round(result.riskLevel * 100)}%)</h3>
+                                <p>Be cautious. Conditions in ${result.state} indicate an elevated landslide risk.</p>`;
+                } else {
+                    riskText = `<h3>High Risk (${Math.round(result.riskLevel * 100)}%)</h3>
+                                <p>Warning! Current conditions in ${result.state} suggest a high probability of landslides.</p>`;
+                }
+                
+                riskInfo.innerHTML = riskText;
+                
+                // Update recommendations
+                const recommendationsList = document.getElementById('recommendations-list');
+                recommendationsList.innerHTML = '';
+                
+                recommendations[result.riskCategory].forEach(rec => {
+                    const li = document.createElement('li');
+                    li.textContent = rec;
+                    recommendationsList.appendChild(li);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

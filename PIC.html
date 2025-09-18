@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landslide Risk Detection - Chetak</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: url('https://images.pexels.com/photos/618833/pexels-photo-618833.jpeg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: -1;
+        }
+
+        header {
+            padding: 20px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4fc3f7;
+            text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+            display: flex;
+            align-items: center;
+        }
+
+        .logo span {
+            color: #ff9800;
+        }
+
+        .logo i {
+            margin-right: 10px;
+            font-size: 1.8rem;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+
+        nav ul li {
+            margin-left: 25px;
+        }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            position: relative;
+            padding: 5px 0;
+            font-size: 1.1rem;
+        }
+
+        nav ul li a:hover {
+            color: #4fc3f7;
+        }
+
+        nav ul li a.active {
+            color: #ff9800;
+        }
+
+        nav ul li a.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #ff9800;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 30px 5%;
+            gap: 30px;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            height: fit-content;
+        }
+
+        .sidebar h2 {
+            color: #ff9800;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar h2 i {
+            margin-right: 10px;
+        }
+
+        .upload-container {
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .upload-area {
+            border: 2px dashed #4fc3f7;
+            border-radius: 10px;
+            padding: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            background: rgba(79, 195, 247, 0.1);
+        }
+
+        .upload-area i {
+            font-size: 3rem;
+            color: #4fc3f7;
+            margin-bottom: 15px;
+        }
+
+        .upload-area p {
+            margin: 10px 0;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .upload-btn {
+            padding: 12px 25px;
+            background: #4fc3f7;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .upload-btn:hover {
+            background: #0288d1;
+            transform: translateY(-3px);
+        }
+
+        .upload-btn i {
+            margin-right: 10px;
+        }
+
+        .sample-images {
+            margin-top: 25px;
+        }
+
+        .sample-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .samples-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .sample-img {
+            width: 100%;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            opacity: 0.7;
+        }
+
+        .sample-img:hover {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .risk-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 25px;
+        }
+
+        .risk-card h3 {
+            color: #4fc3f7;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .risk-card h3 i {
+            margin-right: 10px;
+        }
+
+        .risk-meter {
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .meter-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4caf50, #ff9800, #f44336);
+            border-radius: 15px;
+            transition: width 1s;
+        }
+
+        .meter-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+
+        .factors-list {
+            list-style: none;
+            margin-top: 15px;
+        }
+
+        .factors-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+        }
+
+        .factors-list li i {
+            margin-right: 10px;
+            color: #4fc3f7;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+        }
+
+        .page-title i {
+            margin-right: 15px;
+            color: #ff9800;
+        }
+
+        .results-container {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .image-preview {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        #previewImg {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .analysis-results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .result-card {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .result-card h3 {
+            color: #ff9800;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .result-card h3 i {
+            margin-right: 10px;
+        }
+
+        .chart-container {
+            height: 200px;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .recommendations {
+            margin-top: 20px;
+            background: rgba(255, 152, 0, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 5px solid #ff9800;
+        }
+
+        .recommendations h3 {
+            color: #ff9800;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .recommendations h3 i {
+            margin-right: 10px;
+        }
+
+        .recommendations-list {
+            list-style: none;
+        }
+
+        .recommendations-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+        }
+
+        .recommendations-list li i {
+            margin-right: 10px;
+            color: #4fc3f7;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 15px;
+            border-radius: 10px;
+            border: none;
+            background: #4fc3f7;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .action-btn i {
+            margin-right: 10px;
+        }
+
+        .action-btn:hover {
+            background: #0288d1;
+            transform: translateY(-3px);
+        }
+
+        .action-btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .action-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        footer {
+            padding: 20px 5%;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+            }
+            
+            .analysis-results {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            nav ul {
+                margin-top: 20px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            nav ul li {
+                margin: 10px;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .samples-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+    
+    <header>
+        <div class="logo">
+                <i class="fas fa-mountain"></i>
+                <div class="logo-text">CHETAK<span></span></div>
+                <a href="index.html" title="Go to Home"></a>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="ml.html">ML Model Analysis</a></li>
+                <li><a href="live.html">Live Location Risk Assessment</a></li>
+                <li><a href="VISIT.html">Visiting Location Risk Analysis</a></li>
+                <li><a href="PIC.html" class="active">Risk Analysis Through Pic</a></li>
+                
+            </ul>
+        </nav>
+    </header>
+    
+    <div class="container">
+        <div class="sidebar">
+            <h2><i class="fas fa-cloud-upload-alt"></i> Upload Image</h2>
+            
+            <div class="upload-container">
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-file-image"></i>
+                    <h3>Drag & Drop Your Image</h3>
+                    <p>or</p>
+                    <input type="file" id="fileInput" accept="image/*">
+                    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                        <i class="fas fa-upload"></i> Browse Files
+                    </button>
+                </div>
+                <p>Supported formats: JPG, PNG, WebP</p>
+                <p>Max file size: 10MB</p>
+            </div>
+            
+            <div class="sample-images">
+                <div class="sample-header">
+                    <h2><i class="fas fa-images"></i> Sample Images</h2>
+                    <button class="upload-btn secondary" style="padding: 8px 15px;" onclick="loadMoreSamples()">
+                        <i class="fas fa-sync"></i> More
+                    </button>
+                </div>
+                <div class="samples-grid" id="samplesGrid">
+                    <!-- Sample images will be loaded here -->
+                </div>
+            </div>
+            
+            <div class="risk-card">
+                <h3><i class="fas fa-exclamation-triangle"></i> Quick Assessment</h3>
+                <p>Upload an image to analyze landslide risk factors</p>
+                <div class="risk-meter">
+                    <div class="meter-fill" id="quickRiskMeter"></div>
+                </div>
+                <div class="meter-labels">
+                    <span>Low</span>
+                    <span>Moderate</span>
+                    <span>High</span>
+                    <span>Extreme</span>
+                </div>
+                <p id="quickRiskLevel">No image analyzed</p>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <h1 class="page-title"><i class="fas fa-camera"></i> Landslide Risk Detection via Image</h1>
+            
+            <div class="results-container">
+                <div class="image-preview">
+                    <img id="previewImg" src="https://via.placeholder.com/800x450/2c3e50/ecf0f1?text=Upload+or+Select+an+Image" alt="Image preview">
+                </div>
+                
+                <div class="analysis-results">
+                    <div class="result-card">
+                        <h3><i class="fas fa-chart-pie"></i> Risk Factors Analysis</h3>
+                        <div class="chart-container">
+                            <canvas id="factorsChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="result-card">
+                        <h3><i class="fas fa-chart-line"></i> Risk Probability</h3>
+                        <div class="chart-container">
+                            <canvas id="probabilityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="recommendations">
+                    <h3><i class="fas fa-first-aid"></i> Recommendations</h3>
+                    <ul class="recommendations-list" id="recommendationsList">
+                        <li><i class="fas fa-info-circle"></i> Upload an image to get specific recommendations</li>
+                    </ul>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="analyzeImage()" id="analyzeBtn">
+                        <i class="fas fa-bolt"></i> Analyze Image
+                    </button>
+                    <button class="action-btn secondary" onclick="generateReport()">
+                        <i class="fas fa-download"></i> Download Report
+                    </button>
+                    <button class="action-btn secondary" onclick="shareAnalysis()">
+                        <i class="fas fa-share-alt"></i> Share Analysis
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>&copy; 2023 CHETAK - Avalanche & Landslide Detection System. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Sample images for demonstration
+        const sampleImages = [
+            'https://images.pexels.com/photos/618833/pexels-photo-618833.jpeg',
+            'https://images.pexels.com/photos/1476885/pexels-photo-1476885.jpeg',
+            
+            'https://images.pexels.com/photos/3389957/pexels-photo-3389957.jpeg',
+            'https://images.pexels.com/photos/3553218/pexels-photo-3553218.jpeg',
+            'https://images.pexels.com/photos/3553219/pexels-photo-3553219.jpeg'
+        ];
+        
+        let currentImage = null;
+        let factorsChart = null;
+        let probabilityChart = null;
+        
+        // Initialize the page
+        function init() {
+            loadSampleImages();
+            setupEventListeners();
+            initCharts();
+        }
+        
+        // Load sample images
+        function loadSampleImages() {
+            const samplesGrid = document.getElementById('samplesGrid');
+            samplesGrid.innerHTML = '';
+            
+            sampleImages.forEach(imgSrc => {
+                const img = document.createElement('img');
+                img.className = 'sample-img';
+                img.src = imgSrc;
+                img.alt = 'Sample image';
+                img.onclick = () => selectSampleImage(imgSrc);
+                samplesGrid.appendChild(img);
+            });
+        }
+        
+        // Load more samples (simulated)
+        function loadMoreSamples() {
+            showNotification('Loading more sample images...', '#4fc3f7');
+            
+            // In a real app, this would fetch from an API
+            setTimeout(() => {
+                showNotification('Sample images updated', '#4caf50');
+            }, 1500);
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            // File input change
+            document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+            
+            // Drag and drop
+            const uploadArea = document.getElementById('uploadArea');
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.background = 'rgba(79, 195, 247, 0.2)';
+                uploadArea.style.borderColor = '#ff9800';
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.style.background = '';
+                uploadArea.style.borderColor = '#4fc3f7';
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.background = '';
+                uploadArea.style.borderColor = '#4fc3f7';
+                
+                if (e.dataTransfer.files.length) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+            
+            // Click on upload area
+            uploadArea.addEventListener('click', () => {
+                document.getElementById('fileInput').click();
+            });
+        }
+        
+        // Handle file selection
+        function handleFileSelect(e) {
+            if (e.target.files.length) {
+                handleFile(e.target.files[0]);
+            }
+        }
+        
+        // Process the selected file
+        function handleFile(file) {
+            if (!file.type.match('image.*')) {
+                showNotification('Please select an image file', '#f44336');
+                return;
+            }
+            
+            if (file.size > 10 * 1024 * 1024) {
+                showNotification('File size exceeds 10MB limit', '#f44336');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                currentImage = e.target.result;
+                document.getElementById('previewImg').src = currentImage;
+                document.getElementById('analyzeBtn').disabled = false;
+                
+                // Simulate quick analysis
+                simulateQuickAnalysis();
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        // Select sample image
+        function selectSampleImage(src) {
+            currentImage = src;
+            document.getElementById('previewImg').src = currentImage;
+            document.getElementById('analyzeBtn').disabled = false;
+            
+            // Simulate quick analysis
+            simulateQuickAnalysis();
+        }
+        
+        // Simulate quick analysis
+        function simulateQuickAnalysis() {
+            const riskValue = Math.floor(Math.random() * 100);
+            document.getElementById('quickRiskMeter').style.width = `${riskValue}%`;
+            
+            let riskLevel, riskColor;
+            
+            if (riskValue < 25) {
+                riskLevel = "Low Risk";
+                riskColor = "#4caf50";
+            } else if (riskValue < 50) {
+                riskLevel = "Moderate Risk";
+                riskColor = "#ff9800";
+            } else if (riskValue < 75) {
+                riskLevel = "High Risk";
+                riskColor = "#f44336";
+            } else {
+                riskLevel = "Extreme Risk";
+                riskColor = "#d32f2f";
+            }
+            
+            document.getElementById('quickRiskLevel').textContent = riskLevel;
+            document.getElementById('quickRiskLevel').style.color = riskColor;
+        }
+        
+        // Initialize charts
+        function initCharts() {
+            const factorsCtx = document.getElementById('factorsChart').getContext('2d');
+            factorsChart = new Chart(factorsCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['Slope Angle', 'Soil Exposure', 'Vegetation', 'Erosion', 'Water Content'],
+                    datasets: [{
+                        label: 'Risk Factors',
+                        data: [0, 0, 0, 0, 0],
+                        backgroundColor: 'rgba(79, 195, 247, 0.2)',
+                        borderColor: '#4fc3f7',
+                        pointBackgroundColor: '#4fc3f7',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#4fc3f7'
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            pointLabels: {
+                                color: '#fff'
+                            },
+                            ticks: {
+                                backdropColor: 'transparent',
+                                color: '#fff'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#fff'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            const probabilityCtx = document.getElementById('probabilityChart').getContext('2d');
+            probabilityChart = new Chart(probabilityCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Low', 'Moderate', 'High', 'Extreme'],
+                    datasets: [{
+                        label: 'Risk Probability',
+                        data: [0, 0, 0, 0],
+                        backgroundColor: [
+                            'rgba(76, 175, 80, 0.7)',
+                            'rgba(255, 152, 0, 0.7)',
+                            'rgba(244, 67, 54, 0.7)',
+                            'rgba(211, 47, 47, 0.7)'
+                        ],
+                        borderColor: [
+                            '#4caf50',
+                            '#ff9800',
+                            '#f44336',
+                            '#d32f2f'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                color: '#fff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#fff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#fff'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Analyze image
+        function analyzeImage() {
+            if (!currentImage) {
+                showNotification('Please select an image first', '#f44336');
+                return;
+            }
+            
+            showNotification('Analyzing image...', '#4fc3f7');
+            document.getElementById('analyzeBtn').disabled = true;
+            
+            // Simulate analysis delay
+            setTimeout(() => {
+                simulateAnalysisResults();
+                showNotification('Analysis complete', '#4caf50');
+                document.getElementById('analyzeBtn').disabled = false;
+            }, 2000);
+        }
+        
+        // Simulate analysis results
+        function simulateAnalysisResults() {
+            // Update factors chart
+            factorsChart.data.datasets[0].data = [
+                Math.floor(Math.random() * 100),
+                Math.floor(Math.random() * 100),
+                Math.floor(Math.random() * 100),
+                Math.floor(Math.random() * 100),
+                Math.floor(Math.random() * 100)
+            ];
+            factorsChart.update();
+            
+            // Update probability chart
+            const riskProbabilities = [
+                Math.floor(Math.random() * 100),
+                Math.floor(Math.random() * 100),
+                Math.floor(Math.random() * 100),
+                Math.floor(Math.random() * 100)
+            ];
+            
+            // Normalize to sum to 100
+            const sum = riskProbabilities.reduce((a, b) => a + b, 0);
+            const normalizedProbabilities = riskProbabilities.map(value => 
+                Math.round((value / sum) * 100)
+            );
+            
+            probabilityChart.data.datasets[0].data = normalizedProbabilities;
+            probabilityChart.update();
+            
+            // Update recommendations
+            const riskLevel = normalizedProbabilities[3] > 40 ? 'high' : 
+                             normalizedProbabilities[2] > 50 ? 'moderate' : 'low';
+            
+            updateRecommendations(riskLevel);
+        }
+        
+        // Update recommendations based on risk level
+        function updateRecommendations(riskLevel) {
+            const recommendationsList = document.getElementById('recommendationsList');
+            recommendationsList.innerHTML = '';
+            
+            let recommendations = [];
+            
+            if (riskLevel === 'high') {
+                recommendations = [
+                    "Immediate danger of landslides detected",
+                    "Evacuate the area if possible",
+                    "Avoid slopes and unstable terrain",
+                    "Monitor official warnings and updates",
+                    "Contact local authorities for assistance"
+                ];
+            } else if (riskLevel === 'moderate') {
+                recommendations = [
+                    "Moderate landslide risk detected",
+                    "Avoid unnecessary travel in the area",
+                    "Monitor weather conditions regularly",
+                    "Be prepared to evacuate if conditions worsen",
+                    "Inspect drainage systems for blockages"
+                ];
+            } else {
+                recommendations = [
+                    "Low landslide risk detected",
+                    "Continue to monitor conditions regularly",
+                    "Ensure proper drainage around structures",
+                    "Inspect slopes for signs of erosion",
+                    "Maintain vegetation on slopes for stability"
+                ];
+            }
+            
+            recommendations.forEach(rec => {
+                const li = document.createElement('li');
+                li.innerHTML = `<i class="fas fa-check-circle"></i> ${rec}`;
+                recommendationsList.appendChild(li);
+            });
+        }
+        
+        // Generate report
+        function generateReport() {
+            if (!currentImage) {
+                showNotification('Please analyze an image first', '#f44336');
+                return;
+            }
+            
+            showNotification('Generating PDF report...', '#4fc3f7');
+            
+            // Simulate report generation delay
+            setTimeout(() => {
+                showNotification('Report downloaded successfully!', '#4caf50');
+            }, 2000);
+        }
+        
+        // Share analysis
+        function shareAnalysis() {
+            if (!currentImage) {
+                showNotification('Please analyze an image first', '#f44336');
+                return;
+            }
+            
+            showNotification('Share options displayed', '#ff9800');
+            
+            // In a real app, this would open a share dialog
+            alert("In a complete implementation, this would open share options including:\n- Copy link\n- Email\n- Social media sharing");
+        }
+        
+        // Show notification
+        function showNotification(message, color) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.right = '20px';
+            notification.style.backgroundColor = color;
+            notification.style.color = 'white';
+            notification.style.padding = '15px 20px';
+            notification.style.borderRadius = '5px';
+            notification.style.zIndex = '1000';
+            notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.5s';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 500);
+            }, 3000);
+        }
+        
+        // Initialize when page loads
+        window.onload = init;
+    </script>
+</body>
+</html>
